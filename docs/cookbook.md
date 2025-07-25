@@ -73,6 +73,52 @@ const arr = await zarr.create(store, {
 arr; // zarr.Array<"int32", FileSystemStore>
 ```
 
+## Create a Sharded Array <Badge type="tip" text="v3" />
+
+> **Note**: Sharding write support is currently under development. 
+> You can read existing sharded arrays, but full write support is limited.
+
+```js
+import * as zarr from "zarrita";
+import { FileSystemStore } from "@zarrita/storage";
+
+const store = new FileSystemStore("tempstore");
+const arr = await zarr.create(store, {
+	shape: [100, 100],           // Total array shape
+	chunk_shape: [10, 10],       // Shard shape (groups chunks together)
+	data_type: "float32",
+	codecs: [
+		{
+			name: "sharding_indexed",
+			configuration: {
+				chunk_shape: [5, 5],     // Inner chunk shape within each shard
+				codecs: [                // Codecs applied to each inner chunk
+					{
+						name: "bytes",
+						configuration: { endian: "little" }
+					},
+					{
+						name: "gzip",
+						configuration: { level: 5 }
+					}
+				],
+				index_codecs: [          // Codecs applied to the shard index
+					{
+						name: "bytes", 
+						configuration: { endian: "little" }
+					},
+					{
+						name: "crc32c"
+					}
+				]
+			}
+		}
+	]
+});
+// Reading from sharded arrays works normally
+const data = await zarr.get(arr);
+```
+
 ## Create a Group <Badge type="tip" text="v3" />
 
 Requires the `store` to implement `Writable`.
